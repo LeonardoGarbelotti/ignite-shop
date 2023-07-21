@@ -46,6 +46,7 @@ export const ProductDetails = styled('div', {
     fontSize: '$md',
     lineHeight: 1.6,
     color: '$gray300',
+    textAlign: 'justify',
   },
 
   button: {
