@@ -4,6 +4,9 @@ import { stripe } from "@/lib/stripe";
 import Image from "next/image"
 import Stripe from "stripe";
 import { useRouter } from "next/router";
+import axios from "axios";
+import { useState } from "react";
+import Head from "next/head";
 
 interface IProductProps {
   product: {
@@ -12,30 +15,59 @@ interface IProductProps {
     imageUrl: string
     price: string
     description: string
+    defaultPriceId: string
   }
 }
 
 export default function Product({ product }: IProductProps) {
   const { isFallback } = useRouter()
+  const [isCreatingCheckoutSession, setIsCreatingChechoutSession] = useState(false)
 
   if (isFallback) {
     return <p>Loading...</p>
   }
 
+  async function handleBuyProduct() {
+    // utiliza o axios para enviar o ID do preço para a API do stripe
+    try {
+      setIsCreatingChechoutSession(true)
+
+      const response = await axios.post('/api/checkout', {
+        priceId: product.defaultPriceId,
+      })
+
+      const { checkoutUrl } = response.data
+
+      window.location.href = checkoutUrl
+    } catch (err) {
+      // conectar com ferramenta de observabilidade (Datadog / Sentry)
+      setIsCreatingChechoutSession(false)
+
+      alert('Falha ao redirecionar para checkout!')
+    }
+  }
+
   return (
-    <ProductContainer>
-      <ImageContainer>
-        <Image src={product.imageUrl} width={520} height={480} alt={product.name} />
-      </ImageContainer>
-      <ProductDetails>
-        <h1>{product.name}</h1>
-        <span>{product.price}</span>
+    <>
+      <Head>
+        <title>{product.name} | Ignite Shop</title>
+      </Head>
+      <ProductContainer>
+        <ImageContainer>
+          <Image src={product.imageUrl} width={520} height={480} alt={product.name} />
+        </ImageContainer>
+        <ProductDetails>
+          <h1>{product.name}</h1>
+          <span>{product.price}</span>
 
-        <p>{product.description}</p>
+          <p>{product.description}</p>
 
-        <button>Comprar agora</button>
-      </ProductDetails>
-    </ProductContainer>
+          <button disabled={isCreatingCheckoutSession} onClick={handleBuyProduct}>
+            Comprar agora
+          </button>
+        </ProductDetails>
+      </ProductContainer>
+    </>
   )
 }
 
@@ -66,6 +98,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
           currency: 'BRL',
         }).format((price.unit_amount / 100)),
         description: product.description,
+        defaultPriceId: price.id,
       }
     },
     revalidate: 60 * 60 * 2 // 2 hours
