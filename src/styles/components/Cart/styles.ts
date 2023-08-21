@@ -100,7 +100,7 @@ export const CartFooter = styled('footer', {
       cursor: 'not-allowed',
     },
 
-    '&:not(disabled):hover': {
+    '&:not(:disabled):hover': {
       background: '$green300',
     },
   }

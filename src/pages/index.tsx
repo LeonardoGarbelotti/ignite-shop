@@ -9,6 +9,7 @@ import "keen-slider/keen-slider.min.css"
 import { HomeContainer, Product } from "@/styles/pages/home";
 import Stripe from "stripe";
 import Link from "next/link";
+import { CartButton } from "@/components/CartButton";
 
 interface IHomeProps {
   products: {
@@ -45,8 +46,11 @@ export default function Home({ products }: IHomeProps) {
                   alt={product.name}
                 />
                 <footer>
-                  <strong>{product.name}</strong>
-                  <span>{product.price}</span>
+                  <div>
+                    <strong>{product.name}</strong>
+                    <span>{product.price}</span>
+                  </div>
+                  <CartButton color="green" size='large' />
                 </footer>
               </Product>
             </Link>
