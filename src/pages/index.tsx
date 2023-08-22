@@ -1,33 +1,41 @@
 import { GetStaticProps } from "next";
 import Image from "next/image";
 import Head from "next/head";
+import Stripe from "stripe";
+import Link from "next/link";
 import { stripe } from "@/lib/stripe";
 
 import { useKeenSlider } from 'keen-slider/react'
 import "keen-slider/keen-slider.min.css"
 
 import { HomeContainer, Product } from "@/styles/pages/home";
-import Stripe from "stripe";
-import Link from "next/link";
+
 import { CartButton } from "@/components/CartButton";
+import { useCart } from "@/hooks/useCart";
+import { IProduct } from "@/contexts/CartContext";
+import { MouseEvent } from "react";
+
 
 interface IHomeProps {
-  products: {
-    id: string
-    name: string
-    imageUrl: string
-    price: string
-  }[]
+  products: IProduct[]
 }
 
 export default function Home({ products }: IHomeProps) {
+
   const [sliderRef] = useKeenSlider({
     mode: 'snap',
     slides: {
-      perView: 'auto',
+      perView: 1.8,
       spacing: 48,
     }
   })
+
+  const { addToCart, checkIfItemAlreadyExists } = useCart()
+
+  function handleAddToCart(event: MouseEvent<HTMLButtonElement>, product: IProduct) {
+    event.preventDefault()
+    addToCart(product)
+  }
 
   return (
     <>
@@ -50,7 +58,12 @@ export default function Home({ products }: IHomeProps) {
                     <strong>{product.name}</strong>
                     <span>{product.price}</span>
                   </div>
-                  <CartButton color="green" size='large' />
+                  <CartButton
+                    color="green"
+                    size="large"
+                    disabled={checkIfItemAlreadyExists(product.id)}
+                    onClick={(event) => handleAddToCart(event, product)}
+                  />
                 </footer>
               </Product>
             </Link>
@@ -80,6 +93,8 @@ export const getStaticProps: GetStaticProps = async () => {
         style: 'currency',
         currency: 'BRL',
       }).format((price.unit_amount / 100)),
+      numberPrice: price.unit_amount / 100,
+      defaultPriceId: price.id,
     }
   })
 

@@ -4,48 +4,23 @@ import { stripe } from "@/lib/stripe";
 import Image from "next/image"
 import Stripe from "stripe";
 import { useRouter } from "next/router";
-import axios from "axios";
-import { useState } from "react";
 import Head from "next/head";
+import { useCart } from "@/hooks/useCart";
+import { IProduct } from "@/contexts/CartContext";
 
 interface IProductProps {
-  product: {
-    id: string
-    name: string
-    imageUrl: string
-    price: string
-    description: string
-    defaultPriceId: string
-  }
+  product: IProduct
 }
 
 export default function Product({ product }: IProductProps) {
   const { isFallback } = useRouter()
-  const [isCreatingCheckoutSession, setIsCreatingChechoutSession] = useState(false)
+  const { checkIfItemAlreadyExists, addToCart } = useCart()
 
   if (isFallback) {
     return <p>Loading...</p>
   }
 
-  async function handleBuyProduct() {
-    // utiliza o axios para enviar o ID do preço para a API do stripe
-    try {
-      setIsCreatingChechoutSession(true)
-
-      const response = await axios.post('/api/checkout', {
-        priceId: product.defaultPriceId,
-      })
-
-      const { checkoutUrl } = response.data
-
-      window.location.href = checkoutUrl
-    } catch (err) {
-      // conectar com ferramenta de observabilidade (Datadog / Sentry)
-      setIsCreatingChechoutSession(false)
-
-      alert('Falha ao redirecionar para checkout!')
-    }
-  }
+  const itemAlreadyExistsInCart = checkIfItemAlreadyExists(product.id)
 
   return (
     <>
@@ -62,8 +37,11 @@ export default function Product({ product }: IProductProps) {
 
           <p>{product.description}</p>
 
-          <button disabled={isCreatingCheckoutSession} onClick={handleBuyProduct}>
-            Comprar agora
+          <button
+            disabled={itemAlreadyExistsInCart}
+            onClick={() => addToCart(product)}
+          >
+            {itemAlreadyExistsInCart ? 'Produto já está no carrinho' : 'Adicionar ao carrinho'}
           </button>
         </ProductDetails>
       </ProductContainer>
@@ -97,6 +75,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
           style: 'currency',
           currency: 'BRL',
         }).format((price.unit_amount / 100)),
+        numberPrice: price.unit_amount / 100,
         description: product.description,
         defaultPriceId: price.id,
       }
